@@ -1,0 +1,74 @@
+# Copy to config.yaml and edit. Secrets (passwords, API keys) go in environment variables.
+
+# Sent to OpenAlex/Crossref so they route you to their faster "polite" pools.
+contact_email: you@university.edu
+
+# Paths are relative to this file.
+database: data/paperflow.sqlite
+cache: data/http_cache.sqlite
+
+# Only needed for `paperflow ingest --imap` / `paperflow run` (not for Outlook CSV exports).
+imap:
+  host: imap.gmail.com          # Gmail: needs 2FA + an app password
+  port: 993
+  username: you@gmail.com
+  password_env: PAPERFLOW_IMAP_PASSWORD
+  # Folders to read. In Gmail, a label is a folder: set up a filter that labels all alert
+  # emails "Paper alerts" (nested labels look like "Alerts/Scholar").
+  folders:
+    - Paper alerts
+  since: 2023-01-01             # optional: ignore older messages
+
+# Where you save the Outlook CSV export each week (used by `paperflow weekly`).
+outlook_csv: paper_alerts.CSV
+
+# Drop folder for PDFs you have (used by `paperflow fulltext`; any file names).
+fulltext_dir: fulltext
+
+# Which sender addresses map to which parser. Matching is a case-insensitive substring
+# test on the From header. Senders not listed here are ignored unless you pass
+# --all-senders (then they go through the generic parser).
+senders:
+  scholar: ["scholaralerts-noreply@google.com"]
+  biorxiv: ["biorxiv", "medrxiv", "openrxiv", "cshljnls", "highwire"]
+  stork: ["stork"]
+  # journals: ["@jneurosci.org", "cell.com", "nature.com"]   # add your own
+
+apis:
+  openalex_api_key_env: OPENALEX_API_KEY            # optional; see README
+  semantic_scholar_api_key_env: S2_API_KEY          # optional
+  use_semantic_scholar: true                        # last-resort abstract source
+
+resolve:
+  workers: 4                    # parallel lookups (rate limits are enforced per API anyway)
+  follow_redirects: true        # last resort for papers not found by title: visit the link
+                                #   (short timeouts; unresponsive sites are skipped)
+  scrape_landing_pages: false   # read DOIs from publisher pages' <meta> tags (often blocked)
+  cache_days: 30
+
+# Stage 2: triage (see "Triage" in the README)
+triage:
+  examples_dir: examples              # examples/mandatory, examples/interest, examples/skip
+  profile: research_profile.md        # your research, read by the LLM stage
+  embedding: specter2                 # specter2 | tfidf | any sentence-transformers model name
+  keep_recall: 0.95                   # share of papers like your positives the filter lets through
+  skip_margin: 0.02                   # drop papers this much closer to skip examples than positives
+
+  # The LLM that judges papers passing the filter.
+  llm_provider: ollama                # ollama (local, free) | anthropic (Claude API, paid per token)
+  llm_model: qwen3:14b                # ollama: qwen3:14b, or qwen3:8b (faster, smaller); anthropic:
+                                      #   claude-sonnet-5-5, or claude-haiku-5-5 (cheaper)
+  # llm_workers: 1                    # parallel requests (default: 1 for ollama, 4 for anthropic)
+  ollama_url: http://localhost:11434
+  ollama_num_ctx: 8192                # context window in tokens; raise if paperflow says the prompt
+                                      #   doesn't fit (costs GPU memory)
+  anthropic_api_key_env: ANTHROPIC_API_KEY
+
+# Stage 3: briefings (see "Briefings" in the README)
+briefing:
+  output_dir: briefings               # one folder per briefing: EPUB, markdown, audio script, audio
+  tts: kokoro                         # kokoro | none (EPUB and scripts only)
+  voice: af_heart                     # e.g. af_heart, af_bella, am_michael, bf_emma, bm_george
+  speed: 1.0
+  audio_format: mp3                   # mp3 (plays anywhere) | m4b (audiobook format); both have a chapter per paper
+  pronunciations: pronunciations.txt  # your fixes for names the voice gets wrong

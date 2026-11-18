@@ -1,0 +1,23 @@
+cat > .gitignore <<'EOF'
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+
+# Database, caches, extracted full texts, debug dumps
+data/
+*.sqlite
+
+# Copyrighted material and things generated from it
+fulltext/
+briefings/
+
+# Personal: alert exports, settings, examples, profile
+*.CSV
+*.csv
+config.yaml
+examples/
+research_profile.md
+pronunciations.txt
